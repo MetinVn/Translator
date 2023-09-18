@@ -57,13 +57,13 @@ function App() {
           <div className="flex flex-row gap-1 md:gap-10">
             <button
               onClick={setLightMode}
-              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-90"
+              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-95 duration-150"
             >
               Light Mode
             </button>
             <button
               onClick={setDarkMode}
-              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-90"
+              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-95 duration-150"
             >
               Dark Mode
             </button>
