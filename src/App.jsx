@@ -71,7 +71,7 @@ function App() {
           setTimeout(() => {
             setTranslate(res.data.data.translatedText);
             setLoading(false);
-          }, 1000);
+          }, 400);
         })
         .catch(() => {
           setLoading(true);
