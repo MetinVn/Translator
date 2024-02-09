@@ -25,6 +25,7 @@ function App() {
     { label: "Spanish", value: "es" },
     { label: "Italian", value: "it" },
     { label: "Turkish", value: "tr" },
+    { label: "Russian", value: "ru" },
   ];
   const selectOptionsTarget = [
     { label: "Spanish", value: "es" },
@@ -33,6 +34,7 @@ function App() {
     { label: "German", value: "de" },
     { label: "Italian", value: "it" },
     { label: "Turkish", value: "tr" },
+    { label: "Russian", value: "ru" },
   ];
 
   function handleSource(event) {
