@@ -46,6 +46,8 @@ function App() {
   //**************************************************************************************
   const handleTranslate = (e) => {
     e.preventDefault();
+    setTranslate("");
+    setError(false);
     if (input.current.value.length === 0) {
       setError(true);
     } else {
