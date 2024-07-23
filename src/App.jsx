@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import axios from "axios";
 import BarLoader from "react-spinners/BarLoader";
 import { CopyToClipboard } from "react-copy-to-clipboard";
+
 function App() {
   function setDarkMode() {
     document.documentElement.classList = "dark";
@@ -9,41 +10,51 @@ function App() {
   function setLightMode() {
     document.documentElement.classList = "light";
   }
-  // Translate
+
   const input = useRef(null);
   const [translated, setTranslate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const encodedParams = new URLSearchParams();
-  // **************************************************************************************
+
   const [source, setSource] = useState("en");
   const [target, setTarget] = useState("es");
-  const selectOptionsSource = [
+
+  const selectOptions = [
     { label: "English", value: "en" },
     { label: "Azerbaijani", value: "az" },
     { label: "German", value: "de" },
     { label: "Spanish", value: "es" },
-    { label: "Italian", value: "it" },
-    { label: "Turkish", value: "tr" },
-    { label: "Russian", value: "ru" },
-  ];
-  const selectOptionsTarget = [
-    { label: "Spanish", value: "es" },
-    { label: "Azerbaijani", value: "az" },
-    { label: "English", value: "en" },
-    { label: "German", value: "de" },
     { label: "Italian", value: "it" },
     { label: "Turkish", value: "tr" },
     { label: "Russian", value: "ru" },
   ];
 
   function handleSource(event) {
-    setSource(event.target.value);
+    const newSource = event.target.value;
+    if (newSource === target) {
+      setTarget(source);
+      setSource(newSource);
+    } else {
+      setSource(newSource);
+    }
   }
+
   function handleTarget(event) {
-    setTarget(event.target.value);
+    const newTarget = event.target.value;
+    if (newTarget === source) {
+      setSource(target);
+    }
+    setTarget(newTarget);
   }
-  //**************************************************************************************
+
+  function handleSwap() {
+    setSource((prevSource) => {
+      setTarget(prevSource);
+      return target;
+    });
+  }
+
   const handleTranslate = (e) => {
     e.preventDefault();
     setTranslate("");
@@ -85,6 +96,7 @@ function App() {
         });
     }
   };
+
   return (
     <>
       <div className="h-screen bg-slate-500 dark:bg-black flex flex-col justify-center duration-300">
@@ -110,27 +122,36 @@ function App() {
               <select
                 name="source"
                 id="source"
+                value={source}
                 onChange={handleSource}
                 className="form-select">
-                {selectOptionsSource.map((option, key) => (
+                {selectOptions.map((option, key) => (
                   <option key={key} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
+
               <h1 className="text-white">To</h1>
               <select
                 name="target"
                 id="target"
+                value={target}
                 onChange={handleTarget}
                 className="form-select">
-                {selectOptionsTarget.map((option, key) => (
+                {selectOptions.map((option, key) => (
                   <option key={key} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </select>
             </div>
+            <button
+              type="button"
+              onClick={handleSwap}
+              className="bg-gray-300 hover:bg-gray-400 text-black px-2 py-1 rounded">
+              Swap
+            </button>
             <input
               className="outline-none px-2 py-1 dark:shadow-emerald-400/50 shadow-md hover:shadow-lg rounded-md min-w-[150px] w-full max-w-[400px]"
               ref={input}
