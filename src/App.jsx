@@ -1,24 +1,20 @@
-import { useRef, useState } from "react";
-import axios from "axios";
-import BarLoader from "react-spinners/BarLoader";
-import { CopyToClipboard } from "react-copy-to-clipboard";
+import { useRef, useState, useCallback } from "react";
+
+import ModeToggle from "./components/ModeToggle";
+import LanguageSelector from "./components/LanguageSelector";
+import InputSection from "./components/InputSection";
+import OutputSection from "./components/OutputSection";
+import { translateText } from "./services/translationService";
+import { startSpeechRecognition } from "./services/speechRecService";
 
 function App() {
-  function setDarkMode() {
-    document.documentElement.classList = "dark";
-  }
-  function setLightMode() {
-    document.documentElement.classList = "light";
-  }
-
   const input = useRef(null);
   const [translated, setTranslate] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const encodedParams = new URLSearchParams();
-
   const [source, setSource] = useState("en");
   const [target, setTarget] = useState("es");
+  const [recognizedText, setRecognizedText] = useState("");
 
   const selectOptions = [
     { label: "English", value: "en" },
@@ -30,176 +26,105 @@ function App() {
     { label: "Russian", value: "ru" },
   ];
 
-  function handleSource(event) {
-    const newSource = event.target.value;
-    if (newSource === target) {
-      setTarget(source);
-      setSource(newSource);
-    } else {
-      setSource(newSource);
-    }
-  }
+  const speechOptions = [
+    { label: "en", value: "en-US" },
+    { label: "az", value: "az-AZ" },
+    { label: "de", value: "de-DE" },
+    { label: "es", value: "es-ES" },
+    { label: "it", value: "it-IT" },
+    { label: "tr", value: "tr-TR" },
+    { label: "ru", value: "ru-RU" },
+  ];
 
-  function handleTarget(event) {
-    const newTarget = event.target.value;
-    if (newTarget === source) {
-      setSource(target);
-    }
-    setTarget(newTarget);
-  }
+  const handleSource = (e) => setSource(e.target.value);
+  const handleTarget = (e) => setTarget(e.target.value);
+  const handleSwap = () => {
+    setSource(target);
+    setTarget(source);
+  };
 
-  function handleSwap() {
-    setSource((prevSource) => {
-      setTarget(prevSource);
-      return target;
-    });
-  }
+  const handleTranslate = useCallback(
+    async (e) => {
+      if (e) e.preventDefault();
+      setTranslate(null);
+      setError(null);
 
-  const handleTranslate = (e) => {
-    e.preventDefault();
+      const text = input.current.value;
+      if (!text) {
+        setError("Input cannot be empty");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const result = await translateText(source, target, text);
+        setTranslate(result);
+      } catch (err) {
+        setError("Translation failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [source, target]
+  );
+
+  const handleSpeech = () => {
+    setError(null);
+    setLoading(true);
     setTranslate("");
-    setError(false);
-    if (input.current.value.length === 0) {
-      setError(true);
-    } else {
-      encodedParams.set("source_language", source);
-      encodedParams.set("target_language", target);
-      encodedParams.set("text", input.current.value);
-      const options = {
-        method: "POST",
-        url: "https://text-translator2.p.rapidapi.com/translate",
-        headers: {
-          "content-type": "application/x-www-form-urlencoded",
-          "X-RapidAPI-Key":
-            "03d2e43cd5msh60ee8c95e26694ap104376jsn22703941ef17",
-          "X-RapidAPI-Host": "text-translator2.p.rapidapi.com",
-        },
-        data: encodedParams,
-      };
-      axios(options)
-        .then((res) => {
-          setError(false);
-          setLoading(true);
-          setTranslate(null);
-          setTimeout(() => {
-            setTranslate(res.data.data.translatedText);
-            setLoading(false);
-          }, 400);
-        })
-        .catch(() => {
-          setLoading(true);
-          setTranslate(null);
-          setTimeout(() => {
-            setError(true);
-            setLoading(false);
-          }, 600);
-        });
-    }
+
+    // Find the speech recognition language based on the selected source language.
+    // Fallback to "en-US" if not found.
+    const selectedSpeechOption = speechOptions.find((option) => option.label === source);
+    const recognitionLanguage = selectedSpeechOption ? selectedSpeechOption.value : "en-US";
+
+    startSpeechRecognition({
+      language: recognitionLanguage,
+      onStart: () => console.log("Speech recognition started"),
+      onResult: (speechResult) => {
+        setRecognizedText(speechResult);
+        input.current.value = speechResult;
+      },
+      onTimeout: () => {
+        // Trigger translation automatically when speech recognition times out
+        handleTranslate({ preventDefault: () => {} });
+      },
+      onSpeechEnd: () => setLoading(false),
+      onError: (event) => {
+        setLoading(false);
+        if (event.error === "not-allowed" || event.error === "service-not-allowed") {
+          setError("Microphone access denied. Please allow microphone access to use this feature.");
+        } else {
+          setError("Speech recognition failed. Please try again.");
+        }
+      },
+    });
   };
 
   return (
-    <>
-      <div className="h-screen bg-slate-500 dark:bg-black flex flex-col justify-center duration-300">
-        <div className="max-w-[1350px] mx-auto flex flex-col items-center gap-2">
-          <div className="flex flex-row gap-1 md:gap-10">
-            <button
-              onClick={setLightMode}
-              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-95 duration-150">
-              Light Mode
-            </button>
-            <button
-              onClick={setDarkMode}
-              className="bg-black/50 rounded-md px-4 py-1 dark:bg-slate-500 text-white hover:opacity-80 active:scale-95 duration-150">
-              Dark Mode
-            </button>
-          </div>
-          <form
-            id="form"
-            onSubmit={handleTranslate}
-            className="flex flex-col justify-center items-center gap-4">
-            <div className="flex justify-center items-center gap-2">
-              <h1 className="text-white">Translate from</h1>
-              <select
-                name="source"
-                id="source"
-                value={source}
-                onChange={handleSource}
-                className="form-select">
-                {selectOptions.map((option, key) => (
-                  <option key={key} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-              <h1 className="text-white">To</h1>
-              <select
-                name="target"
-                id="target"
-                value={target}
-                onChange={handleTarget}
-                className="form-select">
-                {selectOptions.map((option, key) => (
-                  <option key={key} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <button
-              type="button"
-              onClick={handleSwap}
-              className="bg-gray-300 hover:bg-gray-400 text-black px-2 py-1 rounded">
-              Swap
-            </button>
-            <input
-              className="outline-none px-2 py-1 dark:shadow-emerald-400/50 shadow-md hover:shadow-lg rounded-md min-w-[150px] w-full max-w-[400px]"
-              ref={input}
-              type="text"
-              placeholder="Translate here..."
-            />
-            <button
-              className="bg-emerald-400 shadow-lg dark:shadow-emerald-400/30 hover:bg-emerald-500 text-white active:scale-95 rounded-md p-1 px-5"
-              onClick={handleTranslate}>
-              Translate
-            </button>
-          </form>
-          <div className="flex flex-col m-3 gap-2 items-center">
-            {translated ? (
-              <span className="text-white text-sm sm:text-lg border-[1px] px-2 rounded-md shadow-inner">
-                {translated}
-              </span>
-            ) : loading ? (
-              <BarLoader
-                className="m-1"
-                color={"#fff"}
-                loading={loading}
-                size={100}
-                aria-label="Loading Spinner"
-                data-testid="loader"
-              />
-            ) : (
-              ""
-            )}
-            {translated ? (
-              <CopyToClipboard
-                text={translated}
-                className="bg-emerald-400 shadow-lg hover:bg-emerald-500 active:scale-90 text-white rounded-md p-1 px-2">
-                <button>Copy</button>
-              </CopyToClipboard>
-            ) : (
-              ""
-            )}
-          </div>
-          {error ? (
-            <span className="text-red-300 p-1 px-5 rounded-[4px] border-[1px] border-red-600 ">
-              This field can not be empty!
-            </span>
-          ) : (
-            ""
-          )}
-        </div>
+    <div className="h-screen flex flex-col md:flex-row">
+      <ModeToggle />
+      <div className="flex-1 flex flex-col p-6 space-y-6 bg-gradient-to-r from-blue-400 to-blue-600 dark:from-gray-800 dark:to-gray-900">
+        <LanguageSelector
+          source={source}
+          target={target}
+          handleSource={handleSource}
+          handleTarget={handleTarget}
+          handleSwap={handleSwap}
+          selectOptions={selectOptions}
+        />
+        <InputSection input={input} handleTranslate={handleTranslate} />
       </div>
-    </>
+      <div className="flex-1 p-6 bg-gradient-to-r from-green-400 to-green-600 dark:from-gray-900 dark:to-gray-800">
+        <OutputSection
+          translated={translated}
+          loading={loading}
+          error={error}
+          handleSpeech={handleSpeech}
+          recognizedText={recognizedText}
+        />
+      </div>
+    </div>
   );
 }
 
