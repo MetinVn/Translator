@@ -1,6 +1,7 @@
 import axios from "axios";
+import { useMutation } from "@tanstack/react-query";
 
-export const translateText = async (source, target, text) => {
+const translateText = async ({ source, target, text }) => {
   const encodedParams = new URLSearchParams();
   encodedParams.set("source_language", source);
   encodedParams.set("target_language", target);
@@ -19,4 +20,10 @@ export const translateText = async (source, target, text) => {
 
   const response = await axios(options);
   return response.data.data.translatedText;
+};
+
+export const useTranslate = () => {
+  return useMutation({
+    mutationFn: translateText,
+  });
 };

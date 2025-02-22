@@ -4,6 +4,16 @@ export const startSpeechRecognition = ({ language = "en-EN", onStart, onResult, 
   recognition.lang = language;
 
   let speechTimeout;
+  let stopped = false;
+
+  const safeStop = () => {
+    if (!stopped) {
+      try {
+        recognition.stop();
+      } catch (err) {}
+      stopped = true;
+    }
+  };
 
   recognition.onstart = () => {
     if (onStart) onStart();
@@ -13,28 +23,28 @@ export const startSpeechRecognition = ({ language = "en-EN", onStart, onResult, 
     if (event.results.length > 0) {
       const transcript = event.results[0][0].transcript;
       if (onResult) onResult(transcript);
-
       clearTimeout(speechTimeout);
-
       speechTimeout = setTimeout(() => {
-        recognition.stop();
+        safeStop();
         if (onTimeout) onTimeout();
       }, 2000);
     }
   };
 
   recognition.onspeechend = () => {
-    setTimeout(() => {
-      recognition.stop();
-      if (onSpeechEnd) onSpeechEnd();
-    }, 5000);
+    clearTimeout(speechTimeout);
+    safeStop();
+    if (onSpeechEnd) onSpeechEnd();
   };
 
   recognition.onerror = (event) => {
+    if (event.error === "aborted" || event.error === "no-speech") {
+      if (onSpeechEnd) onSpeechEnd();
+      return;
+    }
     if (onError) onError(event);
   };
 
   recognition.start();
-
   return recognition;
 };

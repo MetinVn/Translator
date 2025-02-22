@@ -4,17 +4,15 @@ import ModeToggle from "./components/ModeToggle";
 import LanguageSelector from "./components/LanguageSelector";
 import InputSection from "./components/InputSection";
 import OutputSection from "./components/OutputSection";
-import { translateText } from "./services/translationService";
+import { useTranslate } from "./services/translationService";
 import { startSpeechRecognition } from "./services/speechRecService";
 
 function App() {
   const input = useRef(null);
-  const [translated, setTranslate] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [recognizedText, setRecognizedText] = useState("");
   const [source, setSource] = useState("en");
   const [target, setTarget] = useState("es");
-  const [recognizedText, setRecognizedText] = useState("");
+  const [isListening, setIsListening] = useState(false);
 
   const selectOptions = [
     { label: "English", value: "en" },
@@ -43,59 +41,65 @@ function App() {
     setTarget(source);
   };
 
+  const { mutate: translate, data: translatedText, isPending, error } = useTranslate();
+
   const handleTranslate = useCallback(
-    async (e) => {
+    (e) => {
       if (e) e.preventDefault();
-      setTranslate(null);
-      setError(null);
 
       const text = input.current.value;
-      if (!text) {
-        setError("Input cannot be empty");
+      if (!text.trim()) {
+        alert("Input cannot be empty");
         return;
       }
-
-      try {
-        setLoading(true);
-        const result = await translateText(source, target, text);
-        setTranslate(result);
-      } catch (err) {
-        setError("Translation failed");
-      } finally {
-        setLoading(false);
-      }
+      translate({ source, target, text });
     },
-    [source, target]
+    [source, target, translate]
   );
 
-  const handleSpeech = () => {
-    setError(null);
-    setLoading(true);
-    setTranslate("");
+  const handleSpeech = async () => {
+    setRecognizedText("");
 
-    // Find the speech recognition language based on the selected source language.
-    // Fallback to "en-US" if not found.
+    // Request microphone access to trigger the browser's permission dialog
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Immediately stop the stream so that SpeechRecognition can use the microphone
+      stream.getTracks().forEach((track) => track.stop());
+    } catch (error) {
+      alert("Microphone access is blocked. Please enable microphone access in your browser settings and try again.");
+      return;
+    }
+
     const selectedSpeechOption = speechOptions.find((option) => option.label === source);
     const recognitionLanguage = selectedSpeechOption ? selectedSpeechOption.value : "en-US";
 
     startSpeechRecognition({
       language: recognitionLanguage,
-      onStart: () => console.log("Speech recognition started"),
+      onStart: () => {
+        setIsListening(true);
+      },
       onResult: (speechResult) => {
         setRecognizedText(speechResult);
-        input.current.value = speechResult;
+        if (input.current) {
+          input.current.value = speechResult;
+        }
       },
       onTimeout: () => {
-        // Trigger translation automatically when speech recognition times out
+        setIsListening(false);
         handleTranslate({ preventDefault: () => {} });
       },
-      onSpeechEnd: () => setLoading(false),
+      onSpeechEnd: () => {
+        setIsListening(false);
+        if (input.current && input.current.value.trim()) {
+          handleTranslate({ preventDefault: () => {} });
+        }
+      },
       onError: (event) => {
-        setLoading(false);
+        setIsListening(false);
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          setError("Microphone access denied. Please allow microphone access to use this feature.");
+          alert("Microphone access is blocked. Please enable microphone access in your browser settings.");
         } else {
-          setError("Speech recognition failed. Please try again.");
+          alert("Speech recognition failed. Please try again.");
         }
       },
     });
@@ -117,11 +121,12 @@ function App() {
       </div>
       <div className="flex-1 p-6 bg-gradient-to-r from-green-400 to-green-600 dark:from-gray-900 dark:to-gray-800">
         <OutputSection
-          translated={translated}
-          loading={loading}
-          error={error}
+          translated={translatedText}
+          loading={isPending}
+          error={error ? error.message || "Translation failed" : null}
           handleSpeech={handleSpeech}
           recognizedText={recognizedText}
+          isListening={isListening}
         />
       </div>
     </div>
