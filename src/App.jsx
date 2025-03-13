@@ -60,10 +60,8 @@ function App() {
   const handleSpeech = async () => {
     setRecognizedText("");
 
-    // Request microphone access to trigger the browser's permission dialog
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // Immediately stop the stream so that SpeechRecognition can use the microphone
       stream.getTracks().forEach((track) => track.stop());
     } catch (error) {
       alert("Microphone access is blocked. Please enable microphone access in your browser settings and try again.");
