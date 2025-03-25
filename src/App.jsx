@@ -34,8 +34,24 @@ function App() {
     { label: "ru", value: "ru-RU" },
   ];
 
-  const handleSource = (e) => setSource(e.target.value);
-  const handleTarget = (e) => setTarget(e.target.value);
+  const handleSource = (e) => {
+    const value = e.target.value;
+    if (value === target) {
+      setTarget(source);
+      setSource(target);
+    } else {
+      setSource(value);
+    }
+  };
+  const handleTarget = (e) => {
+    const value = e.target.value;
+    if (value === source) {
+      setTarget(source);
+      setSource(target);
+    } else {
+      setTarget(value);
+    }
+  };
   const handleSwap = () => {
     setSource(target);
     setTarget(source);
