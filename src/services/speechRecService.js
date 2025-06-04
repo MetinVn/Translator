@@ -1,5 +1,9 @@
 export const startSpeechRecognition = ({ language = "en-EN", onStart, onResult, onSpeechEnd, onError, onTimeout }) => {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    if (onError) onError({ error: "not-supported", message: "Speech recognition is not supported in this browser." });
+    return null;
+  }
   const recognition = new SpeechRecognition();
   recognition.lang = language;
 
@@ -10,7 +14,9 @@ export const startSpeechRecognition = ({ language = "en-EN", onStart, onResult, 
     if (!stopped) {
       try {
         recognition.stop();
-      } catch (err) {}
+      } catch (err) {
+        console.error("SpeechRecognition stop error:", err);
+      }
       stopped = true;
     }
   };

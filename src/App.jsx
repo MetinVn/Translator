@@ -4,8 +4,8 @@ import ModeToggle from "./components/ModeToggle";
 import LanguageSelector from "./components/LanguageSelector";
 import InputSection from "./components/InputSection";
 import OutputSection from "./components/OutputSection";
-import { useTranslate } from "./services/translationService";
 import { startSpeechRecognition } from "./services/speechRecService";
+import { useTranslate } from "./hooks/useTranslation";
 
 function App() {
   const input = useRef(null);
