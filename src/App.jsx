@@ -1,11 +1,12 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 
-import ModeToggle from "./components/ModeToggle";
+import ThemeModeToggle from "./components/ThemeModeToggle";
 import LanguageSelector from "./components/LanguageSelector";
 import InputSection from "./components/InputSection";
 import OutputSection from "./components/OutputSection";
 import { startSpeechRecognition } from "./services/speechRecService";
 import { useTranslate } from "./hooks/useTranslation";
+import VoiceTranslator from "./components/VoiceTranslate";
 
 function App() {
   const input = useRef(null);
@@ -70,7 +71,7 @@ function App() {
       }
       translate({ source, target, text });
     },
-    [source, target, translate]
+    [source, target, translate],
   );
 
   const handleSpeech = async () => {
@@ -80,7 +81,9 @@ function App() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((track) => track.stop());
     } catch (error) {
-      alert("Microphone access is blocked. Please enable microphone access in your browser settings and try again.");
+      alert(
+        "Microphone access is blocked. Please enable microphone access in your browser settings and try again.",
+      );
       return;
     }
 
@@ -111,7 +114,9 @@ function App() {
       onError: (event) => {
         setIsListening(false);
         if (event.error === "not-allowed" || event.error === "service-not-allowed") {
-          alert("Microphone access is blocked. Please enable microphone access in your browser settings.");
+          alert(
+            "Microphone access is blocked. Please enable microphone access in your browser settings.",
+          );
         } else {
           alert("Speech recognition failed. Please try again.");
         }
@@ -120,8 +125,8 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col md:flex-row">
-      <ModeToggle />
+    <div className="min-h-screen flex flex-col md:flex-row">
+      <ThemeModeToggle />
       <div className="flex-1 flex flex-col p-6 space-y-6 bg-gradient-to-r from-blue-400 to-blue-600 dark:from-gray-800 dark:to-gray-900">
         <LanguageSelector
           source={source}
@@ -131,8 +136,20 @@ function App() {
           handleSwap={handleSwap}
           selectOptions={selectOptions}
         />
-        <InputSection input={input} handleTranslate={handleTranslate} />
+        <InputSection input={input} handleTranslate={handleTranslate} handleSpeech={handleSpeech} />
+        <VoiceTranslator
+          inputRef={input}
+          source={source}
+          onTranslate={handleSpeech}
+          setIsListening={setIsListening}
+          setRecognizedText={setRecognizedText}
+          speechOptions={speechOptions}
+        />
       </div>
+
+      {/* Line Seperator between sections */}
+      <div className="md:h-screen md:w-[1px] bg-gray-600 h-[1px] w-full"></div>
+
       <div className="flex-1 p-6 bg-gradient-to-r from-green-400 to-green-600 dark:from-gray-900 dark:to-gray-800">
         <OutputSection
           translated={translatedText}
